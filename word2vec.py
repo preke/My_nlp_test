@@ -27,26 +27,41 @@ print 'finished'
 
 # ----------------------------------------------------------------------
 
-# declare data
+#coding=utf-8
 import numpy as np
+import gensim
+from gensim import corpora, models, similarities
+
+model = gensim.models.Word2Vec.load('mymodel_command')
+
+class MyCorpus(object):
+    def __iter__(self):
+        for line in open('splited_v2.txt'): # this is job desc
+            if len(line) > 2:
+                yield line.split()
+
+def get_tfidf():
+    Corp = MyCorpus()
+    dictionary = corpora.Dictionary(Corp)
+    corpus = [dictionary.doc2bow(text) for text in Corp]  #把所有评论转化为词包（bag of words）
+    tfidf = models.TfidfModel(corpus)                     #使用tf-idf 模型得出该评论集的tf-idf 模型
+    corpus_tfidf = tfidf[corpus]                          #此处已经计算得出所有评论的tf-idf 值
+    return dictionary, corpus_tfidf
+
+
+
+dictionary, corpus_tfidf = get_tfidf()
 doc = []
+cnt = 0
 g = open('splited_v2.txt', 'r')
-line = g.readline()
-while line:
-    if len(line) > 2:
-        a = np.zeros(100)
-        #a.dtype = ('float32')
-        for word in line.split():
-            try:
-                a = a + model[word]
-            except:
-				#print word
-        
-        doc.append(a)
-    else:
-        pass
-    line = g.readline()
-
+for item in corpus_tfidf:
+    a = np.zeros(100)
+    for element in item:
+        try:
+            a = a + model[dictionary[element[0]].encode('utf-8')] * element[1]
+        except:
+            print dictionary[element[0]].encode('utf-8')
+            cnt = cnt + 1
+    doc.append(a)
 print len(doc)
-
-# till now we trans all the sentences to 100-d vectors
+print str(cnt) + 'bad datas'
